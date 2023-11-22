@@ -105,6 +105,7 @@ gstDecoder::gstDecoder( const videoOptions& options ) : videoSource(options)
 	
 	mWebRTCServer = NULL;
 	mWebRTCConnected = false;
+	LogInfo(LOG_GSTREAMER "gstDecoder -- gstDecoder");
 }
 
 
@@ -122,6 +123,7 @@ gstDecoder::~gstDecoder()
 	destroyPipeline();
 	
 	SAFE_DELETE(mBufferManager);
+	LogError(LOG_GSTREAMER "gstDecoder -- ~gstDecoder");
 }
 
 
@@ -163,6 +165,7 @@ gstDecoder* gstDecoder::Create( const videoOptions& options )
 
 	if( !dec->init() )
 	{
+                delete dec;
 		LogError(LOG_GSTREAMER "gstDecoder -- failed to create decoder for %s\n", dec->mOptions.resource.string.c_str());
 		return NULL;
 	}
@@ -335,7 +338,7 @@ static GstDiscovererVideoInfo* findVideoStreamInfo( GstDiscovererStreamInfo* inf
 	if( !info )
 		return NULL;
 	
-	//printf("stream type -- %s\n", gst_discoverer_stream_info_get_stream_type_nick(info));
+	//// printf("stream type -- %s\n", gst_discoverer_stream_info_get_stream_type_nick(info));
 	
 	if( GST_IS_DISCOVERER_VIDEO_INFO(info) )
 	{
@@ -385,6 +388,7 @@ bool gstDecoder::discover()
     
 	if( !info || err != NULL )
 	{
+		gst_object_unref(discoverer);
 		LogError(LOG_GSTREAMER "gstDecoder -- %s\n", err->message);
 		return false;
 	}
@@ -493,7 +497,8 @@ bool gstDecoder::discover()
 	}
 
 	// TODO free other resources
-	//g_free(discoverer);
+	// gst_object_unref(discoverer);
+	gst_object_unref(discoverer);
 	return true;
 }
 
@@ -774,7 +779,7 @@ GstFlowReturn gstDecoder::onPreroll( _GstAppSink* sink, void* user_data )
 
 	gst_sample_unref(gstSample);
 #endif
-
+	// printf("gstDecoder::onPreroll to checkMsgBus()\r\n");
 	dec->checkMsgBus();
 	return GST_FLOW_OK;
 }
@@ -783,7 +788,7 @@ GstFlowReturn gstDecoder::onPreroll( _GstAppSink* sink, void* user_data )
 // onBuffer
 GstFlowReturn gstDecoder::onBuffer( _GstAppSink* sink, void* user_data )
 {
-	//printf(LOG_GSTREAMER "gstDecoder -- onBuffer()\n");
+	//// printf(LOG_GSTREAMER "gstDecoder -- onBuffer()\n");
 	
 	if( !user_data )
 		return GST_FLOW_OK;
@@ -791,6 +796,7 @@ GstFlowReturn gstDecoder::onBuffer( _GstAppSink* sink, void* user_data )
 	gstDecoder* dec = (gstDecoder*)user_data;
 	
 	dec->checkBuffer();
+	// printf("gstDecoder::onBuffer to checkMsgBus()\r\n");
 	dec->checkMsgBus();
 	
 	return GST_FLOW_OK;
@@ -892,6 +898,7 @@ void gstDecoder::checkBuffer()
 bool gstDecoder::Capture( void** output, imageFormat format, uint64_t timeout, int* status )
 {
 	// update the webrtc server if needed
+	// printf("update the webrtc server if needed\r\n"); //wpy debug
 	if( mWebRTCServer != NULL && !mWebRTCServer->IsThreaded() )
 		mWebRTCServer->ProcessRequests();
 	
@@ -900,6 +907,7 @@ bool gstDecoder::Capture( void** output, imageFormat format, uint64_t timeout, i
 		RETURN_STATUS(ERROR);
 
 	// confirm the stream is open
+	// printf("confirm the stream is open\r\n"); //wpy debug
 	if( !mStreaming || mEOS )
 	{
 		if( !Open() )
@@ -907,6 +915,7 @@ bool gstDecoder::Capture( void** output, imageFormat format, uint64_t timeout, i
 	}
 
 	// wait until a new frame is recieved
+	// printf("wait until a new frame is recieved\r\n"); //wpy debug
 	const int result = mBufferManager->Dequeue(output, format, timeout);
 	
 	if( result < 0 )
@@ -919,8 +928,10 @@ bool gstDecoder::Capture( void** output, imageFormat format, uint64_t timeout, i
 		LogWarning(LOG_GSTREAMER "gstDecoder::Capture() -- a timeout occurred waiting for the next image buffer\n");
 		RETURN_STATUS(TIMEOUT);
 	}
-		
+	// printf("result:%d\r\n,result"); //wpy debug	
+	// printf("mBufferManager->GetLastTimestamp()\r\n"); //wpy debug	
 	mLastTimestamp = mBufferManager->GetLastTimestamp();
+	// printf("mBufferManager->GetRawFormat()\r\n"); //wpy debug	
 	mRawFormat = mBufferManager->GetRawFormat();
 	
 	RETURN_STATUS(OK);
@@ -936,10 +947,10 @@ static void queryPipelineState( GstElement* pipeline )
 		                  &state, &pending,  GST_CLOCK_TIME_NONE);
 
 	if( result == GST_STATE_CHANGE_FAILURE )
-		printf("GST_STATE_CHANGE_FAILURE\n");
+		// printf("GST_STATE_CHANGE_FAILURE\n");
 
-	printf("state - %s\n", gst_element_state_get_name(state));
-	printf("pending - %s\n", gst_element_state_get_name(pending));
+	// printf("state - %s\n", gst_element_state_get_name(state));
+	// printf("pending - %s\n", gst_element_state_get_name(pending));
 }
 #endif
 
@@ -996,7 +1007,7 @@ bool gstDecoder::Open()
 			gst_message_unref(asyncMsg);
 		}
 		else
-			printf(LOG_GSTREAMER "gstDecoder -- NULL message after transitioning pipeline to PLAYING...\n");
+			// printf(LOG_GSTREAMER "gstDecoder -- NULL message after transitioning pipeline to PLAYING...\n");
 #endif
 	}
 	else if( result != GST_STATE_CHANGE_SUCCESS )
@@ -1004,9 +1015,10 @@ bool gstDecoder::Open()
 		LogError(LOG_GSTREAMER "gstDecoder -- failed to set pipeline state to PLAYING (error %u)\n", result);
 		return false;
 	}
-
+	// printf("gstDecoder::Open()1 to checkMsgBus()\r\n");
 	checkMsgBus();
 	usleep(100 * 1000);
+	// printf("gstDecoder::Open()2 to checkMsgBus()\r\n");
 	checkMsgBus();
 
 	mStreaming = true;
@@ -1017,8 +1029,8 @@ bool gstDecoder::Open()
 // Close
 void gstDecoder::Close()
 {
-	if( !mStreaming && !mEOS )  // if EOS was set, the pipeline is actually open
-		return;
+	//if( !mStreaming && !mEOS )  // if EOS was set, the pipeline is actually open
+	//	return;
 
 	// stop pipeline
 	LogInfo(LOG_GSTREAMER "gstDecoder -- stopping pipeline, transitioning to GST_STATE_NULL\n");
@@ -1029,21 +1041,29 @@ void gstDecoder::Close()
 		LogError(LOG_GSTREAMER "gstDecoder -- failed to stop pipeline (error %u)\n", result);
 
 	usleep(250*1000);
+	// printf("gstDecoder::Close() to checkMsgBus()\r\n");
 	checkMsgBus();
 	mStreaming = false;
 	LogInfo(LOG_GSTREAMER "gstDecoder -- pipeline stopped\n");
+
+	LogError(LOG_GSTREAMER "gstDecoder -- Close()\n");
 }
 
 
 // checkMsgBus
 void gstDecoder::checkMsgBus()
 {
+	// printf("gstDecoder::checkMsgBus() %p\r\n",mBus); //wpy debug
 	while(true)
 	{
 		GstMessage* msg = gst_bus_pop(mBus);
+		// GstMessage* msg = gst_bus_poll(mBus, GST_MESSAGE_ANY, 0); // 非阻塞方式检查消息
 
-		if( !msg )
+		if( !msg ){
+			// printf("gstDecoder::checkMsgBus() break\r\n"); //wpy debug
 			break;
+		}
+			
 
 		gst_message_print(mBus, msg, this);
 		gst_message_unref(msg);

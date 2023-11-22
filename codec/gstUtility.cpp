@@ -413,8 +413,8 @@ bool gst_build_filesink( const URI& uri, videoOptions::Codec codec, std::ostring
 	else if( uri.extension == "mp4" || uri.extension == "qt" )
 	{
 		ADD_CODEC_PARSER();
-		pipeline << "qtmux ! ";
-	}
+		//pipeline << "qtmux ! ";
+        }
 	else if( uri.extension != "h264" && uri.extension != "h265" )
 	{
 		printf(LOG_GSTREAMER "unsupported video file extension (%s)\n", uri.extension.c_str());
@@ -428,8 +428,10 @@ bool gst_build_filesink( const URI& uri, videoOptions::Codec codec, std::ostring
 		return false;
 	}
 
-	pipeline << "filesink location=" << uri.location << " ";
-	return true;
+	//pipeline << "filesink location=" << uri.location << " ";
+        pipeline << "splitmuxsink location=" << uri.location <<"_%05d" << " max-size-time=300000000000 ";
+	//pipeline << "splitmuxsink location=" << uri.location <<"-%Y%m%d_%H%M%S" << " max-size-time=10000000000 ";
+        return true;
 }
 
 

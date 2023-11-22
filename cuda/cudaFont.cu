@@ -34,7 +34,7 @@
 #include "../image/stb/stb_truetype.h"
 
 
-//#define DEBUG_FONT
+#define DEBUG_FONT
 
 
 // Struct for one character to render

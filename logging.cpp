@@ -25,7 +25,7 @@
 
 
 // set default logging options
-Log::Level Log::mLevel = Log::DEFAULT;
+Log::Level Log::mLevel = Log::DEBUG;
 FILE* Log::mFile = stdout;
 std::string Log::mFilename = "stdout";
 

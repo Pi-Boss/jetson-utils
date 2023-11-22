@@ -139,6 +139,7 @@ gstEncoder* gstEncoder::Create( const videoOptions& options )
 	
 	if( !enc->init() )
 	{
+                delete enc;
 		LogError(LOG_GSTREAMER "gstEncoder -- failed to create encoder engine\n");
 		return NULL;
 	}

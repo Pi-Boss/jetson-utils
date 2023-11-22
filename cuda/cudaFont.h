@@ -151,9 +151,9 @@ protected:
 	float4* mRectsGPU;
 	int     mRectIndex;
 
-	static const uint32_t MaxCommands = 1024;
-	static const uint32_t FirstGlyph  = 32;
-	static const uint32_t LastGlyph   = 255;
+	static const uint32_t MaxCommands = 1024;//1024
+	static const uint32_t FirstGlyph  = 32;//32
+	static const uint32_t LastGlyph   = 0x9FFF;//255
 	static const uint32_t NumGlyphs   = LastGlyph - FirstGlyph;
 
 	struct GlyphInfo
